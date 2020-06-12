@@ -44,24 +44,50 @@ def graph_entry(directions_list):
         new_entry[dir] = dir
 
     return new_entry
+
+# accepts the visited set starting node of the search 
+
+def bfs_nearest_open_node(visited, starting_node):
+    # Create a node_que for a BFT search
+    node_que = deque()
+    node_que.append([starting_node])
+
+    dir_path_que = deque() # to track the directions taken
+
+    bfs_visited = set()
+
+    while len(node_que) > 0:
+        # preventing an error from .popleft() if dir_path is empty
+        if len(dir_path_que) <= 0:
+            current_dir_path = []
+        else:
+            current_dir_path = dir_path_que.popleft() # tracking the direction path
+
+        current_node_path = node_que.popleft()
+        current_node = current_node_path[-1]
+        
+        bfs_visited.add(current_node.id)
+
+        if len(current_node.get_exits()) > 0:
+            for next_node_dir in current_node.get_exits(): # ex [ "n", "s"]
+                next_node = current_node.get_room_in_direction(next_node_dir)
+
+                if next_node.id not in visited: # search is complete
+                    return [*current_dir_path, next_node_dir]
+                
+                elif next_node.id not in bfs_visited:
+                    dir_path_que.append([*current_dir_path, next_node_dir])
+                    node_que.append([*current_node_path, next_node])
+                    
+        else:
+            print(current_dir_path)
+            return current_dir_path
 ### End Helpers ###
 
 traversal_path = []
 
 rooms_graph = dict()
 visited = set() # track nodes that are visited
-
-# dict used to create reverse directions for backtracking
-reverse_directions = {
-    "n": "s",
-    "e": "w",
-    "s": "n",
-    "w": "e"
-}
-
-backtrack_route_stack = deque() 
-# this ^^^ will be used to keep track of the path for backtracking, every move forward in an unexplored node will add the oppopsite direction to the stack. If the current room does not have any explored paths, it will pop this direction off and move backwards until there is a new adjacent room to explore. This will g
-
 
 
 while len(visited) < len(world.rooms):
@@ -83,19 +109,22 @@ while len(visited) < len(world.rooms):
             unexplored_route = dir # assigns a direction to move to an existing and un-explored room.
 
     # traverse
-    if unexplored_route is None: # start backtracking
-        backtrack_route = backtrack_route_stack.pop() # grab the backtracking direction
-        traversal_path.append(backtrack_route) 
-        player.travel(backtrack_route)
-        
-    else: # move to unexplored room
+    if unexplored_route is not None: # move to unexplored room
         traversal_path.append(unexplored_route)
-        backtrack_route_stack.append(reverse_directions[unexplored_route]) # add the reverse of the direction moved to the backtrack_route_stack
         player.travel(unexplored_route)
+        
+    else: # start backtracking
+        # pathfinding will = either None or an array of directions to the next unexplored froom
+        pathfinding = bfs_nearest_open_node(visited, player.current_room)
 
+        if pathfinding is not None:
+            print("PATHFINDING", pathfinding)
+            for dir in pathfinding:
+                print(dir)
+                traversal_path.append(dir)
+                player.travel(dir)
+                visited.add(player.current_room.id)
 
-
-#
 
 
 
